@@ -1,5 +1,7 @@
 # Sentry Error Tracking Setup
 
+> **Note**: DragonFly now supports both Sentry.io and GlitchTip through a generic adapter. See [ERROR_TRACKING.md](./ERROR_TRACKING.md) for complete documentation. This document covers Sentry.io specifically.
+
 DragonFly integrates with [Sentry.io](https://sentry.io) for error tracking and monitoring. This helps identify issues in production and provides insights into application health.
 
 ## Features

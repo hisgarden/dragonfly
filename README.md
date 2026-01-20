@@ -132,7 +132,7 @@ Clean architecture. Domain-driven design. SOLID principles. Tests first.
 
 No network calls by default. No telemetry. No data collection. Everything runs local. Check the code yourself.
 
-Error tracking (Sentry) is opt-in via `--enable-error-tracking` flag. Only enabled when explicitly requested.
+Error tracking (Sentry.io or GlitchTip) is opt-in via `--enable-error-tracking` flag. Only enabled when explicitly requested. Supports both cloud-hosted Sentry.io and self-hosted GlitchTip instances.
 
 ## Performance
 

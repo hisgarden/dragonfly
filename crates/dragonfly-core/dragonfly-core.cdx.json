@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.3",
   "version": 1,
-  "serialNumber": "urn:uuid:b4910c40-0c3d-42c5-a826-e8525596e2af",
+  "serialNumber": "urn:uuid:c3471187-a6a0-4b30-be4b-777ea42b6a40",
   "metadata": {
-    "timestamp": "2026-01-20T02:16:35.340798000Z",
+    "timestamp": "2026-01-20T03:59:00.987066000Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -12,10 +12,15 @@
         "version": "0.5.7"
       }
     ],
+    "authors": [
+      {
+        "name": "hisgarden"
+      }
+    ],
     "component": {
       "type": "library",
       "bom-ref": "path+file:///Volumes/OWC_1M2/workspace/util/dragonfly/crates/dragonfly-core#0.1.0",
-      "author": "hisgarden <https://github.com/hisgarden>",
+      "author": "hisgarden",
       "name": "dragonfly-core",
       "version": "0.1.0",
       "description": "Core domain types, entities, and business logic for DragonFly",

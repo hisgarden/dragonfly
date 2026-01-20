@@ -1,0 +1,33 @@
+# GlitchTip Configuration for DragonFly
+# Copy this file to .glitchtiprc and fill in your GlitchTip credentials
+# 
+# Get your DSN from your GlitchTip instance:
+#   1. Go to your GlitchTip project settings
+#   2. Navigate to Client Keys (DSN)
+#   3. Copy the DSN URL
+#
+# The DSN format is: https://KEY@YOUR_GLITCHTIP_HOST/PROJECT_ID
+# For localhost development, HTTP is acceptable: http://KEY@localhost:8000/PROJECT_ID
+#
+# For local development with GlitchTip running on localhost:8000:
+#   url=http://YOUR_KEY@localhost:8000/PROJECT_ID
+#
+# Alternatively, you can set the ERROR_TRACKING_DSN environment variable:
+#   export ERROR_TRACKING_DSN="https://YOUR_KEY@YOUR_HOST/PROJECT_ID"
+#
+# You can also specify the backend explicitly:
+#   export ERROR_TRACKING_BACKEND="glitchtip"
+
+[defaults]
+org=YOUR_ORG_SLUG
+project=dragonfly
+url=https://YOUR_KEY@YOUR_GLITCHTIP_HOST/PROJECT_ID
+
+# Example for local development:
+# [defaults]
+# org=my-org
+# project=dragonfly
+# url=http://abc123def456@localhost:8000/123
+
+# Note: The 'url' field contains the full DSN that will be used for error tracking.
+# The application will automatically detect GlitchTip based on the URL.

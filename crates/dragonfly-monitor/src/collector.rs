@@ -22,7 +22,7 @@ impl MetricsCollector {
     pub async fn collect(&mut self) -> Result<SystemMetrics> {
         self.system.refresh_all();
 
-        let cpu_usage = self.system.global_cpu_info().cpu_usage() as f32;
+        let cpu_usage = self.system.global_cpu_info().cpu_usage();
         let total_memory = self.system.total_memory();
         let used_memory = self.system.used_memory();
         let total_swap = self.system.total_swap();

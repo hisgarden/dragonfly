@@ -6,8 +6,13 @@
 #
 # The DSN format is: https://KEY@oORG_ID.ingest.sentry.io/PROJECT_ID
 #
-# Alternatively, you can set the SENTRY_DSN environment variable:
+# Alternatively, you can set the ERROR_TRACKING_DSN environment variable:
+#   export ERROR_TRACKING_DSN="https://KEY@oORG_ID.ingest.sentry.io/PROJECT_ID"
+#
+# Or use SENTRY_DSN for backward compatibility:
 #   export SENTRY_DSN="https://KEY@oORG_ID.ingest.sentry.io/PROJECT_ID"
+#
+# To use GlitchTip instead, see .glitchtiprc.example
 
 [auth]
 token=YOUR_SENTRY_AUTH_TOKEN_HERE

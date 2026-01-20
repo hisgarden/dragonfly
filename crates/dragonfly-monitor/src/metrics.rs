@@ -33,6 +33,7 @@ pub struct SystemMetrics {
 
 impl SystemMetrics {
     /// Create new metrics
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         cpu_usage_percent: f32,
         memory_total_bytes: u64,

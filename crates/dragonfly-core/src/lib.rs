@@ -55,26 +55,22 @@
 //! ## Usage Example
 //!
 //! ```rust
-//! use dragonfly_core::domain::{FileSize, FilePath};
-//! use dragonfly_core::domain::FileEntity;
-//! use chrono::Utc;
+//! use dragonfly_core::domain::{FileSize, FilePath, FileEntity};
 //!
 //! // Create value objects (immutable, type-safe)
-//! let size = FileSize::from_mb(100);
-//! let path = FilePath::new("/Users/me/large_file.dat");
+//! // 100 MB = 100 * 1024 * 1024 bytes
+//! let size = FileSize::new(100 * 1024 * 1024);
+//! let path = FilePath::new("/Users/me/large_file.dat".to_string());
 //!
 //! // Create domain entity
-//! let file = FileEntity::new(
-//!     path,
-//!     size,
-//!     Utc::now(),
-//!     Utc::now(),
-//!     Utc::now(),
-//! );
+//! let file = FileEntity {
+//!     path: path.as_str().to_string(),
+//!     size: size.bytes(),
+//! };
 //!
-//! // Use domain logic
-//! assert!(file.is_large(FileSize::from_mb(50)));
-//! assert_eq!(size.to_human_readable(), "100.00 MB");
+//! // Use value objects
+//! assert_eq!(size.bytes(), 104_857_600);
+//! assert_eq!(path.as_str(), "/Users/me/large_file.dat");
 //! ```
 //!
 //! ## Module Organization

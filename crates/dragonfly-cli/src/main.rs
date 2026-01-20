@@ -7,12 +7,10 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use sentry::{init, ClientInitGuard};
-use std::borrow::Cow;
-use std::env;
 use tracing_subscriber::EnvFilter;
 
 use dragonfly_cli::commands::{analyze, clean, duplicates, health, monitor, recover};
+use dragonfly_cli::error_tracking::{init_error_tracking, load_config};
 use dragonfly_cli::{DiskCommand, DuplicatesCommand, RecoverCommand, TimeMachineCommand};
 
 #[derive(Parser)]
@@ -42,7 +40,7 @@ struct Cli {
     #[arg(global = true, long)]
     json: bool,
 
-    /// Enable error tracking (Sentry) - sends errors to remote server
+    /// Enable error tracking (Sentry/GlitchTip) - sends errors to remote server
     #[arg(global = true, long)]
     enable_error_tracking: bool,
 }
@@ -138,12 +136,13 @@ enum Commands {
 async fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    // Initialize Sentry only if explicitly enabled
+    // Initialize error tracking only if explicitly enabled
     let _guard = if cli.enable_error_tracking {
-        init_sentry()
+        let config = load_config();
+        init_error_tracking(config)
     } else {
-        // No-op guard - Sentry disabled for privacy
-        init(("", sentry::ClientOptions::default()))
+        // No-op guard - error tracking disabled for privacy
+        sentry::init(("", sentry::ClientOptions::default()))
     };
 
     // Initialize logging
@@ -204,10 +203,10 @@ async fn main() -> Result<()> {
         }
     };
 
-    // Report errors to Sentry only if error tracking is enabled
+    // Report errors to error tracking backend only if enabled
     if cli.enable_error_tracking {
         if let Err(ref error) = result {
-            // Convert anyhow::Error to something Sentry can capture
+            // Convert anyhow::Error to something Sentry/GlitchTip can capture
             if let Some(source) = error.source() {
                 sentry::capture_error(source);
             } else {
@@ -218,73 +217,6 @@ async fn main() -> Result<()> {
     }
 
     result
-}
-
-/// Initialize Sentry error tracking (only called when --enable-error-tracking is set)
-/// Reads DSN from SENTRY_DSN environment variable or .sentryclirc file
-/// Returns a no-op guard if no DSN is configured
-fn init_sentry() -> ClientInitGuard {
-    // Check for DSN in environment variable first
-    let dsn = env::var("SENTRY_DSN").ok();
-
-    // If not in env, try reading from .sentryclirc file
-    let dsn = dsn.or_else(|| {
-        std::fs::read_to_string(".sentryclirc")
-            .ok()
-            .and_then(|content| {
-                // Look for defaults.url= line
-                content
-                    .lines()
-                    .find(|line| line.starts_with("defaults.url="))
-                    .and_then(|line| {
-                        let url = line.strip_prefix("defaults.url=")?.trim();
-                        // Sentry URL format: https://KEY@HOST/PROJECT_ID
-                        // Extract the full DSN
-                        if url.starts_with("https://") {
-                            Some(url.to_string())
-                        } else {
-                            None
-                        }
-                    })
-            })
-    });
-
-    let is_debug = cfg!(debug_assertions);
-    let release = format!("dragonfly@{}", env!("CARGO_PKG_VERSION"));
-    let environment = if is_debug {
-        "development"
-    } else {
-        "production"
-    };
-
-    if let Some(dsn) = dsn {
-        init((
-            dsn,
-            sentry::ClientOptions {
-                release: Some(Cow::Owned(release.clone())),
-                environment: Some(Cow::Borrowed(environment)),
-                // Privacy: Don't send PII by default
-                send_default_pii: false,
-                // Sample rate for performance monitoring (100% in dev, 10% in production)
-                traces_sample_rate: if is_debug { 1.0 } else { 0.1 },
-                // Attach stack traces to all events
-                attach_stacktrace: true,
-                // Enable breadcrumbs for better debugging
-                max_breadcrumbs: 100,
-                ..Default::default()
-            },
-        ))
-    } else {
-        // No DSN configured - Sentry will be a no-op
-        // This allows the app to run without Sentry configured
-        init((
-            "",
-            sentry::ClientOptions {
-                release: Some(Cow::Owned(release)),
-                ..Default::default()
-            },
-        ))
-    }
 }
 
 fn init_logging(debug: bool) -> Result<()> {

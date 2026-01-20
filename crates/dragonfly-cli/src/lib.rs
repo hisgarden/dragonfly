@@ -4,6 +4,7 @@
 //! for the DragonFly macOS maintenance utility.
 
 pub mod commands;
+pub mod error_tracking;
 pub mod types;
 pub mod ui;
 

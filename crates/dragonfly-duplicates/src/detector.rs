@@ -76,7 +76,7 @@ impl DuplicateDetector {
 
         for file in files {
             let hash = self.compute_hash(&file.path)?;
-            hash_groups.entry(hash).or_insert_with(Vec::new).push(file);
+            hash_groups.entry(hash).or_default().push(file);
         }
 
         // Filter to only groups with duplicates (2+ files)
@@ -213,8 +213,12 @@ mod tests {
         let result = detector.find_duplicates(&path, 0).await.unwrap();
 
         assert_eq!(result.duplicates.len(), 2);
-        assert_eq!(result.duplicates[0].len(), 2); // Group A
-        assert_eq!(result.duplicates[1].len(), 3); // Group B (or vice versa)
+
+        // Check that we have one group with 2 files and one group with 3 files
+        // Order is non-deterministic due to HashMap iteration
+        let group_sizes: Vec<usize> = result.duplicates.iter().map(|g| g.len()).collect();
+        assert!(group_sizes.contains(&2), "Should have a group with 2 files");
+        assert!(group_sizes.contains(&3), "Should have a group with 3 files");
     }
 
     #[tokio::test]

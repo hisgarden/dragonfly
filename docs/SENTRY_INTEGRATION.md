@@ -1,8 +1,10 @@
 # Sentry Integration Guide
 
+> **Note**: This document covers Sentry.io specifically. For information about using GlitchTip (self-hosted Sentry-compatible) or the generic error tracking adapter, see [ERROR_TRACKING.md](./ERROR_TRACKING.md).
+
 ## ✅ Current Status
 
-Sentry.io error tracking is **fully integrated** into DragonFly.
+Sentry.io error tracking is **fully integrated** into DragonFly through a generic error tracking adapter that also supports GlitchTip.
 
 ### Configuration
 
