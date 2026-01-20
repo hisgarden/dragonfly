@@ -15,8 +15,8 @@ fn get_disk_usage(_path: &str) -> Option<(u64, u64)> {
         let c_path = CString::new("/").ok()?;
 
         if libc::statfs(c_path.as_ptr(), &mut stat) == 0 {
-            let total = (stat.f_blocks as u64) * (stat.f_bsize as u64);
-            let free = (stat.f_bavail as u64) * (stat.f_bsize as u64);
+            let total = u64::from(stat.f_blocks) * u64::from(stat.f_bsize);
+            let free = u64::from(stat.f_bavail) * u64::from(stat.f_bsize);
             let used = total.saturating_sub(free);
             Some((total, used))
         } else {
