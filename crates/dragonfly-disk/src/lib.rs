@@ -12,7 +12,7 @@
 pub mod analyzer;
 pub mod strategies;
 
-pub use analyzer::DiskAnalyzer;
+pub use analyzer::{AnalysisResult, DiskAnalyzer};
 pub use strategies::AnalysisStrategy;
 
 /// Module version
