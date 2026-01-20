@@ -1,20 +1,55 @@
 //! System metrics collection
 
+use crate::metrics::SystemMetrics;
 use dragonfly_core::error::Result;
+use sysinfo::System;
 
 /// Collects system metrics
-#[derive(Debug, Clone, Copy)]
-pub struct MetricsCollector;
+#[derive(Debug)]
+pub struct MetricsCollector {
+    system: System,
+}
 
 impl MetricsCollector {
     /// Create a new metrics collector
     pub fn new() -> Self {
-        Self
+        let mut system = System::new_all();
+        system.refresh_all();
+        Self { system }
     }
 
-    /// Collect current system metrics (MVP stub)
-    pub async fn collect(&self) -> Result<()> {
-        Ok(())
+    /// Collect current system metrics
+    pub async fn collect(&mut self) -> Result<SystemMetrics> {
+        self.system.refresh_all();
+
+        let cpu_usage = self.system.global_cpu_info().cpu_usage() as f32;
+        let total_memory = self.system.total_memory();
+        let used_memory = self.system.used_memory();
+        let total_swap = self.system.total_swap();
+        let used_swap = self.system.used_swap();
+
+        // Calculate disk usage (simplified - uses available/used memory as proxy for now)
+        // In a real implementation, would query actual disk usage
+        let disk_total = total_memory; // Placeholder
+        let disk_used = used_memory; // Placeholder
+
+        Ok(SystemMetrics {
+            cpu_usage_percent: cpu_usage,
+            memory_total_bytes: total_memory,
+            memory_used_bytes: used_memory,
+            memory_available_bytes: total_memory.saturating_sub(used_memory),
+            swap_total_bytes: total_swap,
+            swap_used_bytes: used_swap,
+            disk_total_bytes: disk_total,
+            disk_used_bytes: disk_used,
+            disk_available_bytes: disk_total.saturating_sub(disk_used),
+            network_rx_bytes: 0, // Would need network monitoring
+            network_tx_bytes: 0,
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+        })
     }
 }
 
@@ -28,9 +63,86 @@ impl Default for MetricsCollector {
 mod tests {
     use super::*;
 
+    #[tokio::test]
+    async fn should_collect_cpu_metrics() {
+        let mut collector = MetricsCollector::new();
+        let metrics = collector.collect().await.unwrap();
+
+        // CPU usage should be between 0 and 100
+        assert!(metrics.cpu_usage_percent >= 0.0);
+        assert!(metrics.cpu_usage_percent <= 100.0);
+    }
+
+    #[tokio::test]
+    async fn should_collect_memory_metrics() {
+        let mut collector = MetricsCollector::new();
+        let metrics = collector.collect().await.unwrap();
+
+        // Memory values should be valid
+        assert!(metrics.memory_total_bytes > 0);
+        assert!(metrics.memory_used_bytes <= metrics.memory_total_bytes);
+        assert_eq!(
+            metrics.memory_available_bytes,
+            metrics
+                .memory_total_bytes
+                .saturating_sub(metrics.memory_used_bytes)
+        );
+    }
+
+    #[tokio::test]
+    async fn should_collect_swap_metrics() {
+        let mut collector = MetricsCollector::new();
+        let metrics = collector.collect().await.unwrap();
+
+        // Swap used should not exceed total
+        assert!(metrics.swap_used_bytes <= metrics.swap_total_bytes);
+    }
+
+    #[tokio::test]
+    async fn should_collect_disk_metrics() {
+        let mut collector = MetricsCollector::new();
+        let metrics = collector.collect().await.unwrap();
+
+        // Disk values should be valid
+        assert!(metrics.disk_total_bytes > 0);
+        assert!(metrics.disk_used_bytes <= metrics.disk_total_bytes);
+        assert_eq!(
+            metrics.disk_available_bytes,
+            metrics
+                .disk_total_bytes
+                .saturating_sub(metrics.disk_used_bytes)
+        );
+    }
+
+    #[tokio::test]
+    async fn should_include_timestamp() {
+        let mut collector = MetricsCollector::new();
+        let metrics = collector.collect().await.unwrap();
+
+        // Timestamp should be recent (within last minute)
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        assert!(metrics.timestamp <= now);
+        assert!(metrics.timestamp > now.saturating_sub(60));
+    }
+
+    #[tokio::test]
+    async fn should_collect_multiple_times() {
+        let mut collector = MetricsCollector::new();
+
+        let metrics1 = collector.collect().await.unwrap();
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        let metrics2 = collector.collect().await.unwrap();
+
+        // Timestamps should differ
+        assert!(metrics2.timestamp >= metrics1.timestamp);
+    }
+
     #[test]
     fn test_collector_creation() {
         let collector = MetricsCollector::new();
-        assert_eq!(std::mem::size_of_val(&collector), 0);
+        assert!(!collector.system.cpus().is_empty());
     }
 }

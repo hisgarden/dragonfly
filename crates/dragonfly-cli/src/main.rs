@@ -41,6 +41,10 @@ struct Cli {
     /// Enable JSON output
     #[arg(global = true, long)]
     json: bool,
+
+    /// Enable error tracking (Sentry) - sends errors to remote server
+    #[arg(global = true, long)]
+    enable_error_tracking: bool,
 }
 
 #[derive(Subcommand)]
@@ -132,10 +136,15 @@ enum Commands {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize Sentry before anything else
-    let _guard = init_sentry();
-
     let cli = Cli::parse();
+
+    // Initialize Sentry only if explicitly enabled
+    let _guard = if cli.enable_error_tracking {
+        init_sentry()
+    } else {
+        // No-op guard - Sentry disabled for privacy
+        init(("", sentry::ClientOptions::default()))
+    };
 
     // Initialize logging
     init_logging(cli.debug)?;
@@ -195,22 +204,25 @@ async fn main() -> Result<()> {
         }
     };
 
-    // Report errors to Sentry
-    if let Err(ref error) = result {
-        // Convert anyhow::Error to something Sentry can capture
-        if let Some(source) = error.source() {
-            sentry::capture_error(source);
-        } else {
-            // Fallback: capture as message if no source error
-            sentry::capture_message(&format!("Error: {}", error), sentry::Level::Error);
+    // Report errors to Sentry only if error tracking is enabled
+    if cli.enable_error_tracking {
+        if let Err(ref error) = result {
+            // Convert anyhow::Error to something Sentry can capture
+            if let Some(source) = error.source() {
+                sentry::capture_error(source);
+            } else {
+                // Fallback: capture as message if no source error
+                sentry::capture_message(&format!("Error: {}", error), sentry::Level::Error);
+            }
         }
     }
 
     result
 }
 
-/// Initialize Sentry error tracking
+/// Initialize Sentry error tracking (only called when --enable-error-tracking is set)
 /// Reads DSN from SENTRY_DSN environment variable or .sentryclirc file
+/// Returns a no-op guard if no DSN is configured
 fn init_sentry() -> ClientInitGuard {
     // Check for DSN in environment variable first
     let dsn = env::var("SENTRY_DSN").ok();

@@ -130,7 +130,9 @@ Clean architecture. Domain-driven design. SOLID principles. Tests first.
 
 ## Privacy
 
-No network calls. No telemetry. No data collection. Everything runs local. Check the code yourself.
+No network calls by default. No telemetry. No data collection. Everything runs local. Check the code yourself.
+
+Error tracking (Sentry) is opt-in via `--enable-error-tracking` flag. Only enabled when explicitly requested.
 
 ## Performance
 
