@@ -147,9 +147,7 @@ async fn main() -> Result<()> {
 
     let result = match cli.command {
         Commands::Disk { command } => analyze::handle_disk(command, cli.json).await,
-        Commands::Duplicates { command } => {
-            duplicates::handle_duplicates(command, cli.json).await
-        }
+        Commands::Duplicates { command } => duplicates::handle_duplicates(command, cli.json).await,
         Commands::Monitor { interval, json } => monitor::handle_monitor(interval, json).await,
         Commands::Clean {
             dry_run,
@@ -241,7 +239,11 @@ fn init_sentry() -> ClientInitGuard {
 
     let is_debug = cfg!(debug_assertions);
     let release = format!("dragonfly@{}", env!("CARGO_PKG_VERSION"));
-    let environment = if is_debug { "development" } else { "production" };
+    let environment = if is_debug {
+        "development"
+    } else {
+        "production"
+    };
 
     if let Some(dsn) = dsn {
         init((
