@@ -163,7 +163,6 @@ fn extract_dsn_from_config(content: &str) -> Option<String> {
 mod tests {
     use super::*;
 
-
     #[test]
     fn test_extract_dsn_from_config_defaults_url() {
         let config = "defaults.url=https://key@host.com/123\n";

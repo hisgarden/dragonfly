@@ -173,6 +173,33 @@ impl RecoveryManager {
         Ok(())
     }
 
+    /// Restore files from a recovery
+    pub fn restore_recovery(&self, recovery_id: &str) -> std::io::Result<(usize, u64)> {
+        let manifest = self.load_manifest(recovery_id)?;
+        let archive_dir = self.archive_dir(recovery_id);
+        let mut restored_count = 0;
+        let mut restored_size = 0u64;
+
+        for item in &manifest.items {
+            let archive_path = archive_dir.join(&item.archive_path);
+            let original_path = &item.original_path;
+
+            // Create parent directory if needed
+            if let Some(parent) = original_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+
+            // Copy file from archive to original location
+            if archive_path.exists() {
+                std::fs::copy(&archive_path, original_path)?;
+                restored_count += 1;
+                restored_size += item.size;
+            }
+        }
+
+        Ok((restored_count, restored_size))
+    }
+
     /// Clean up expired recoveries
     pub fn cleanup_expired(&self) -> std::io::Result<Vec<String>> {
         let recoveries = self.list_recoveries()?;

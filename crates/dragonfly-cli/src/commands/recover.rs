@@ -72,19 +72,45 @@ pub async fn handle_recover_show(recovery_id: String, json: bool) -> Result<()> 
 
 /// Restore a recovery
 pub async fn handle_recover_restore(recovery_id: String, json: bool) -> Result<()> {
+    use humansize::{format_size, DECIMAL};
+
+    let recovery_dir = RecoveryManager::default_dir();
+    let manager = RecoveryManager::new(recovery_dir);
+    manager.initialize()?;
+
+    // Load manifest to show what will be restored
+    let manifest = manager.load_manifest(&recovery_id)?;
+
     if json {
+        let (restored_count, restored_size) = manager.restore_recovery(&recovery_id)?;
         println!(
-            r#"{{"status":"ok","message":"Restore (MVP stub)","recovery_id":"{}"}}"#,
-            recovery_id
+            r#"{{"status":"ok","recovery_id":"{}","files_restored":{},"bytes_restored":{}}}"#,
+            recovery_id, restored_count, restored_size
         );
-    } else {
-        println!("{}", "Recovery Restore".bold().bright_cyan());
-        println!("Recovery ID: {}", recovery_id);
-        println!(
-            "\n{}",
-            "This is an MVP stub. Full restore implementation coming soon.".dimmed()
-        );
+        return Ok(());
     }
+
+    println!("{}", "Recovery Restore".bold().bright_cyan());
+    println!("Recovery ID: {}", recovery_id);
+    println!("Date: {}", manifest.timestamp.format("%Y-%m-%d %H:%M:%S"));
+    println!("Items to restore: {}", manifest.items.len());
+    println!();
+
+    // Restore files
+    match manager.restore_recovery(&recovery_id) {
+        Ok((restored_count, restored_size)) => {
+            println!("{}", "Restore completed successfully!".green().bold());
+            println!("Files restored: {}", restored_count);
+            println!(
+                "Size restored: {}",
+                format_size(restored_size, DECIMAL).bold()
+            );
+        }
+        Err(e) => {
+            return Err(anyhow::anyhow!("Failed to restore recovery: {}", e));
+        }
+    }
+
     Ok(())
 }
 

@@ -4,6 +4,33 @@ use crate::metrics::SystemMetrics;
 use dragonfly_core::error::Result;
 use sysinfo::System;
 
+/// Get disk usage for root filesystem (returns (total_bytes, used_bytes))
+#[cfg(target_os = "macos")]
+fn get_disk_usage(_path: &str) -> Option<(u64, u64)> {
+    use std::ffi::CString;
+    use std::mem;
+
+    unsafe {
+        let mut stat: libc::statfs = mem::zeroed();
+        let c_path = CString::new("/").ok()?;
+
+        if libc::statfs(c_path.as_ptr(), &mut stat) == 0 {
+            let total = (stat.f_blocks as u64) * (stat.f_bsize as u64);
+            let free = (stat.f_bavail as u64) * (stat.f_bsize as u64);
+            let used = total.saturating_sub(free);
+            Some((total, used))
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn get_disk_usage(_path: &str) -> Option<(u64, u64)> {
+    // Fallback for non-macOS: return None to use placeholder
+    None
+}
+
 /// Collects system metrics
 #[derive(Debug)]
 pub struct MetricsCollector {
@@ -28,10 +55,8 @@ impl MetricsCollector {
         let total_swap = self.system.total_swap();
         let used_swap = self.system.used_swap();
 
-        // Calculate disk usage (simplified - uses available/used memory as proxy for now)
-        // In a real implementation, would query actual disk usage
-        let disk_total = total_memory; // Placeholder
-        let disk_used = used_memory; // Placeholder
+        // Get disk usage for root filesystem
+        let (disk_total, disk_used) = get_disk_usage("/").unwrap_or((0, 0));
 
         Ok(SystemMetrics {
             cpu_usage_percent: cpu_usage,

@@ -1,7 +1,10 @@
 //! Cache and temporary file cleaning command handler
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use colored::Colorize;
+use dragonfly_cleaner::{CleanTarget, SystemCleaner};
+use humansize::{format_size, DECIMAL};
+use serde_json::json;
 
 pub async fn handle_clean(
     dry_run: bool,
@@ -12,43 +15,87 @@ pub async fn handle_clean(
     interactive: bool,
     json: bool,
 ) -> Result<()> {
-    // Check for AI agent cleanup flag
-    let _ai_agents = all; // For MVP, treat --all as AI agents cleanup
-    if json {
-        println!(
-            r#"{{"status":"ok","message":"Cache cleaner (MVP stub)","dry_run":{},"all":{},"caches":{},"logs":{},"temp":{},"interactive":{}}}"#,
-            dry_run, all, caches, logs, temp, interactive
-        );
+    let cleaner = SystemCleaner::new();
+
+    // Determine target
+    let target = if all {
+        CleanTarget::All
+    } else if caches {
+        CleanTarget::Caches
+    } else if logs {
+        CleanTarget::Logs
+    } else if temp {
+        CleanTarget::Temp
     } else {
-        println!("{}", "Cache Cleaner".bold().bright_cyan());
-        if dry_run {
-            println!("{}", "Mode: Dry run (no files will be deleted)".yellow());
-        }
-        if all {
-            println!("Target: All (caches, logs, temp files)");
+        // No target specified
+        if json {
+            println!(
+                r#"{{"status":"error","message":"No target specified. Use --all, --caches, --logs, or --temp"}}"#
+            );
         } else {
-            let targets: Vec<&str> = [
-                if caches { Some("Caches") } else { None },
-                if logs { Some("Logs") } else { None },
-                if temp { Some("Temp files") } else { None },
-            ]
-            .iter()
-            .flatten()
-            .copied()
-            .collect();
-            if targets.is_empty() {
-                println!("Target: None specified (use --all, --caches, --logs, or --temp)");
-            } else {
-                println!("Target: {}", targets.join(", "));
+            println!("{}", "Cache Cleaner".bold().bright_cyan());
+            println!(
+                "{}",
+                "No target specified. Use --all, --caches, --logs, or --temp".yellow()
+            );
+        }
+        return Ok(());
+    };
+
+    // Perform cleaning
+    let result = cleaner
+        .clean(target, dry_run)
+        .await
+        .context("Failed to clean files")?;
+
+    if json {
+        let json_output = json!({
+            "status": "ok",
+            "dry_run": dry_run,
+            "target": format!("{:?}", target),
+            "files_found": result.files_found.len(),
+            "files_cleaned": result.files_cleaned,
+            "bytes_freed": result.bytes_freed,
+            "bytes_freed_human": format_size(result.bytes_freed, DECIMAL)
+        });
+        println!("{}", serde_json::to_string_pretty(&json_output)?);
+        return Ok(());
+    }
+
+    // Human-readable output
+    println!("{}", "Cache Cleaner".bold().bright_cyan());
+    if dry_run {
+        println!("{}", "Mode: Dry run (no files will be deleted)".yellow());
+    } else {
+        println!("{}", "Mode: Cleaning (files will be deleted)".red().bold());
+    }
+
+    println!("Target: {:?}", target);
+    println!();
+
+    if dry_run {
+        println!("Found {} files", result.files_found.len());
+        println!(
+            "Would free: {}",
+            format_size(result.bytes_freed, DECIMAL).bold()
+        );
+
+        if interactive && !result.files_found.is_empty() {
+            println!("\n{}", "Files that would be cleaned:".cyan());
+            for (i, file) in result.files_found.iter().take(20).enumerate() {
+                println!("  {}. {}", i + 1, file.display());
+            }
+            if result.files_found.len() > 20 {
+                println!("  ... and {} more files", result.files_found.len() - 20);
             }
         }
-        if interactive {
-            println!("{}", "Mode: Interactive".cyan());
-        }
+    } else {
+        println!("Cleaned {} files", result.files_cleaned);
         println!(
-            "\n{}",
-            "This is an MVP stub. Full implementation coming soon.".dimmed()
+            "Freed: {}",
+            format_size(result.bytes_freed, DECIMAL).bold().green()
         );
     }
+
     Ok(())
 }

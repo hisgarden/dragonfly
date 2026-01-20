@@ -182,25 +182,49 @@ async fn main() -> Result<()> {
                 recover::handle_recover_cleanup(json || cli.json).await
             }
         },
-        Commands::TimeMachine { command } => {
-            match command {
-                TimeMachineCommand::Snapshots { json } => {
-                    // TODO: Implement Time Machine snapshot listing
-                    if json || cli.json {
-                        println!(
-                            r#"{{"status":"ok","message":"Time Machine snapshots (MVP stub)"}}"#
-                        );
+        Commands::TimeMachine { command } => match command {
+            TimeMachineCommand::Snapshots { json } => {
+                use dragonfly_cleaner::TimeMachineManager;
+                use humansize::{format_size, DECIMAL};
+
+                let snapshots = TimeMachineManager::list_snapshots()?;
+
+                if json || cli.json {
+                    let json_output = serde_json::json!({
+                        "status": "ok",
+                        "snapshots": snapshots.iter().map(|s| serde_json::json!({
+                            "id": s.id,
+                            "date": s.date,
+                            "size": s.size
+                        })).collect::<Vec<_>>(),
+                        "count": snapshots.len()
+                    });
+                    println!("{}", serde_json::to_string_pretty(&json_output)?);
+                } else {
+                    println!("{}", "Time Machine Snapshots".bold().bright_cyan());
+                    println!();
+                    if snapshots.is_empty() {
+                        println!("No local snapshots found.");
                     } else {
-                        println!("{}", "Time Machine Snapshots".bold().bright_cyan());
+                        println!("Found {} local snapshot(s):\n", snapshots.len());
+                        for (i, snapshot) in snapshots.iter().enumerate() {
+                            println!("{}. {}", i + 1, snapshot.id);
+                            println!("   Date: {}", snapshot.date);
+                            if let Some(size) = snapshot.size {
+                                println!("   Size: {}", format_size(size, DECIMAL));
+                            }
+                            println!();
+                        }
                         println!(
-                            "\n{}",
-                            "This is an MVP stub. Full implementation coming soon.".dimmed()
+                            "{}",
+                            "Note: Use 'tmutil deletelocalsnapshot <id>' to delete snapshots"
+                                .dimmed()
                         );
                     }
-                    Ok(())
                 }
+                Ok(())
             }
-        }
+        },
     };
 
     // Report errors to GlitchTip only if enabled

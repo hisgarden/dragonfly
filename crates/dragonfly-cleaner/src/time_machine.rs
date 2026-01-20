@@ -104,17 +104,28 @@ impl TimeMachineManager {
 
     /// Extract date from snapshot ID
     fn extract_date(snapshot_id: &str) -> Option<String> {
-        // Format: com.apple.TimeMachine.2025-01-20-143000
-        if let Some(date_part) = snapshot_id.split('.').next_back() {
-            // Convert 2025-01-20-143000 to readable format
-            if date_part.len() >= 10 {
-                let date = &date_part[..10]; // 2025-01-20
-                let time = if date_part.len() >= 16 {
-                    &date_part[11..16] // 14300
+        // Format: com.apple.TimeMachine.2025-01-20-143000.local
+        // Or: com.apple.TimeMachine.2025-01-20-143000
+        let parts: Vec<&str> = snapshot_id.split('.').collect();
+
+        // Find the part that looks like a date (YYYY-MM-DD-HHMMSS)
+        for part in parts {
+            if part.len() >= 10 && part.chars().take(4).all(|c| c.is_ascii_digit()) {
+                // Found date part like "2025-01-20-143000"
+                let date = &part[..10]; // 2025-01-20
+                let time_str = if part.len() >= 16 {
+                    let hour = &part[11..13];
+                    let min = &part[13..15];
+                    let sec = if part.len() >= 16 {
+                        &part[15..17]
+                    } else {
+                        "00"
+                    };
+                    format!("{}:{}:{}", hour, min, sec)
                 } else {
-                    ""
+                    "00:00:00".to_string()
                 };
-                return Some(format!("{} {}", date, time));
+                return Some(format!("{} {}", date, time_str));
             }
         }
         None
