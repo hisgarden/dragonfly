@@ -397,6 +397,37 @@ task run CLI_ARGS="time-machine snapshots"
 task run CLI_ARGS="monitor --interval 10"
 ```
 
+## Feature Flags
+
+DragonFly supports optional features that can be enabled at compile time:
+
+### Skills Command (cheat sheet)
+```bash
+# Build with skills feature
+cargo build -p dragonfly-cli --features skills
+
+# Run skills command
+./target/debug/dragonfly skills
+./target/debug/dragonfly skills --json
+```
+
+### TUI - Retro Defrag Animation
+```bash
+# Build with TUI feature
+cargo build -p dragonfly-cli --features tui
+
+# Run defrag TUI
+./target/debug/dragonfly defrag ~/
+./target/debug/dragonfly defrag ~/Downloads
+
+# Features:
+# - Full-screen terminal UI (alternate screen buffer)
+# - Animated "80s defrag" style block visualization
+# - Real-time progress display
+# - Press Q or Ctrl+C to quit
+# - Terminal state always restored on exit
+```
+
 ## Additional Resources
 
 - **README.md**: Feature overview and usage examples

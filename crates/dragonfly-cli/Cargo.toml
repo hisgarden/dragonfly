@@ -18,6 +18,7 @@ dragonfly-disk.workspace = true
 dragonfly-duplicates.workspace = true
 dragonfly-monitor.workspace = true
 dragonfly-cleaner.workspace = true
+dragonfly-tui = { path = "../dragonfly-tui", optional = true }
 
 tokio.workspace = true
 async-trait.workspace = true
@@ -43,6 +44,11 @@ sentry.workspace = true
 sysinfo.workspace = true
 humansize.workspace = true
 chrono.workspace = true
+dirs.workspace = true
+
+[features]
+skills = []
+tui = ["dragonfly-tui"]
 
 [[bin]]
 name = "dragonfly"

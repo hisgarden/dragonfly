@@ -10,6 +10,8 @@ use colored::Colorize;
 use tracing_subscriber::EnvFilter;
 
 use dragonfly_cli::commands::{analyze, clean, duplicates, health, monitor, recover};
+#[cfg(feature = "skills")]
+use dragonfly_cli::commands::skills;
 use dragonfly_cli::error_tracking::{init_error_tracking, load_config};
 use dragonfly_cli::{DiskCommand, DuplicatesCommand, RecoverCommand, TimeMachineCommand};
 
@@ -130,6 +132,24 @@ enum Commands {
         #[command(subcommand)]
         command: TimeMachineCommand,
     },
+
+    /// Display workflow cheat sheet
+    #[cfg(feature = "skills")]
+    #[command(about = "Display DragonFly workflow cheat sheet and quick reference")]
+    Skills {
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Retro defrag-style TUI for disk cleanup
+    #[cfg(feature = "tui")]
+    #[command(about = "Launch retro defrag-style terminal UI for disk scanning and cleanup")]
+    Defrag {
+        /// Path to scan
+        #[arg(default_value = "~")]
+        path: String,
+    },
 }
 
 #[tokio::main]
@@ -224,6 +244,22 @@ async fn main() -> Result<()> {
                 }
                 Ok(())
             }
+        },
+        #[cfg(feature = "skills")]
+        Commands::Skills { json } => skills::handle_skills(json || cli.json).await,
+        #[cfg(feature = "tui")]
+        Commands::Defrag { path } => {
+            // Expand ~ to home directory
+            let expanded_path = if path.starts_with('~') {
+                if let Some(home) = dirs::home_dir() {
+                    path.replacen('~', home.to_str().unwrap_or("/"), 1)
+                } else {
+                    path
+                }
+            } else {
+                path
+            };
+            dragonfly_tui::run_app(expanded_path).await
         },
     };
 

@@ -1,0 +1,35 @@
+[package]
+name = "dragonfly-tui"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+rust-version.workspace = true
+description = "Terminal UI for DragonFly with retro defrag animation"
+readme = "README.md"
+
+[dependencies]
+# Core dependencies
+dragonfly-core.workspace = true
+
+# TUI
+ratatui.workspace = true
+crossterm.workspace = true
+
+# Async
+tokio.workspace = true
+
+# Error handling
+anyhow.workspace = true
+thiserror.workspace = true
+
+# Utilities
+chrono.workspace = true
+
+[lib]
+name = "dragonfly_tui"
+path = "src/lib.rs"
