@@ -15,8 +15,9 @@ fn get_disk_usage(_path: &str) -> Option<(u64, u64)> {
         let c_path = CString::new("/").ok()?;
 
         if libc::statfs(c_path.as_ptr(), &mut stat) == 0 {
-            let total = u64::from(stat.f_blocks) * u64::from(stat.f_bsize);
-            let free = u64::from(stat.f_bavail) * u64::from(stat.f_bsize);
+            // f_blocks, f_bsize, f_bavail are u64 on macOS
+            let total = stat.f_blocks * stat.f_bsize;
+            let free = stat.f_bavail * stat.f_bsize;
             let used = total.saturating_sub(free);
             Some((total, used))
         } else {
