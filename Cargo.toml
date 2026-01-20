@@ -1,0 +1,126 @@
+[workspace]
+members = [
+    "crates/dragonfly-core",
+    "crates/dragonfly-disk",
+    "crates/dragonfly-duplicates",
+    "crates/dragonfly-monitor",
+    "crates/dragonfly-cleaner",
+    "crates/dragonfly-cli",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["hisgarden <https://github.com/hisgarden>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/hisgarden/dragonfly"
+homepage = "https://github.com/hisgarden/dragonfly"
+documentation = "https://docs.rs/dragonfly"
+keywords = ["macos", "maintenance", "system", "cleaner", "privacy"]
+categories = ["command-line-utilities", "filesystem"]
+rust-version = "1.75"
+readme = "README.md"
+
+[workspace.dependencies]
+# Internal crates
+dragonfly-core = { path = "crates/dragonfly-core", version = "0.1.0" }
+dragonfly-disk = { path = "crates/dragonfly-disk", version = "0.1.0" }
+dragonfly-duplicates = { path = "crates/dragonfly-duplicates", version = "0.1.0" }
+dragonfly-monitor = { path = "crates/dragonfly-monitor", version = "0.1.0" }
+dragonfly-cleaner = { path = "crates/dragonfly-cleaner", version = "0.1.0" }
+
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+tokio-stream = "0.1"
+async-trait = "0.1"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+color-eyre = "0.6"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# CLI
+clap = { version = "4.4", features = ["derive", "cargo", "env"] }
+dialoguer = "0.11"
+indicatif = "0.17"
+console = "0.15"
+colored = "2.1"
+
+# System information
+sysinfo = "0.30"
+libc = "0.2"
+
+# File system
+walkdir = "2.4"
+jwalk = "0.8"
+ignore = "0.4"
+tempfile = "3.8"
+
+# Hashing
+blake3 = "1.5"
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+
+# Parallel processing
+rayon = "1.8"
+
+# Utilities
+chrono = { version = "0.4", features = ["serde"] }
+humansize = "2.1"
+num_cpus = "1.16"
+uuid = { version = "1.6", features = ["v4", "serde"] }
+dirs = "5.0"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+
+# Error tracking
+sentry = { version = "0.32", features = ["tracing", "tower", "tower-http"] }
+
+# Testing
+proptest = "1.4"
+criterion = { version = "0.5", features = ["html_reports"] }
+rstest = "0.18"
+mockall = "0.12"
+assert_cmd = "2.0"
+predicates = "3.0"
+pretty_assertions = "1.4"
+
+# macOS specific dependencies should be added to individual crates that need them
+# Example: core-foundation = "0.9", mach2 = "0.4"
+
+# Development profile - fast compilation, debugging enabled
+[profile.dev]
+opt-level = 0
+debug = true
+split-debuginfo = "unpacked"
+incremental = true
+
+# Test profile - some optimization for faster test execution
+[profile.test]
+opt-level = 1
+debug = true
+inherits = "dev"
+
+# Release profile - maximum optimization
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"
+overflow-checks = false
+
+# Benchmark profile - release with debug info
+[profile.bench]
+inherits = "release"
+debug = true
+lto = "thin"
+strip = false

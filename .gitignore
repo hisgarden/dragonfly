@@ -1,0 +1,50 @@
+# Rust
+/target
+target/
+Cargo.lock
+*.rs.bk
+*.pdb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+*.iml
+
+# Testing
+*.profraw
+*.profdata
+/tarpaulin-report.html
+/coverage/
+
+# CI
+.cargo/
+
+# macOS
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Trashes
+.Spotlight-V100
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.dylib
+
+# SBOM files (generated, should be committed but regenerated on build)
+# Note: Per-crate SBOMs (*.cdx.json) are generated in crates/*/ directories
+# These should be committed as they're part of the release artifacts
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Sentry configuration (contains auth tokens)
+.sentryclirc

@@ -1,0 +1,30 @@
+# Sentry Configuration
+# Copy this file to .sentryclirc and fill in your Sentry credentials
+# 
+# Get your DSN from: https://sentry.io/settings/<org>/projects/<project>/keys/
+# Get your auth token from: https://sentry.io/settings/account/api/auth-tokens/
+#
+# The DSN format is: https://KEY@oORG_ID.ingest.sentry.io/PROJECT_ID
+#
+# Alternatively, you can set the SENTRY_DSN environment variable:
+#   export SENTRY_DSN="https://KEY@oORG_ID.ingest.sentry.io/PROJECT_ID"
+
+[auth]
+token=YOUR_SENTRY_AUTH_TOKEN_HERE
+
+[defaults]
+org=YOUR_ORG_SLUG
+project=YOUR_PROJECT_SLUG
+url=https://YOUR_KEY@oYOUR_ORG_ID.ingest.sentry.io/YOUR_PROJECT_ID
+
+# Example:
+# [auth]
+# token=abc123def456...
+#
+# [defaults]
+# org=my-org
+# project=dragonfly
+# url=https://abc123def456@o1234567.ingest.sentry.io/1234567
+#
+# Note: The 'url' field contains the full DSN that will be used for error tracking.
+# The application will automatically extract and use this DSN.

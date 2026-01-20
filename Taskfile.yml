@@ -1,0 +1,508 @@
+version: "3"
+
+# =============================================
+# DragonFly macOS Maintenance Utility
+# Version: 0.1.0 (Alpha MVP)
+# =============================================
+
+# Taskfile for DragonFly development and maintenance
+# Reference documentation:
+# - README.md
+# - SETUP.md
+# - docs/AI_AGENT_CLEANUP_STRATEGY.md
+
+# Variables (can be overridden via command line)
+vars:
+  # Project information
+  PROJECT_NAME: dragonfly
+  BINARY_NAME: dragonfly
+  CLI_CRATE: dragonfly-cli
+  VERSION: "0.1.0"
+
+  # Paths (use USER_WORKING_DIR for relative paths)
+  TARGET_DEBUG: "target/debug/dragonfly"
+  TARGET_RELEASE: "target/release/dragonfly"
+
+  # Default CLI args (can be overridden)
+  CLI_ARGS: ""
+
+tasks:
+  # Default task shows main workflow
+  default:
+    desc: Show DragonFly development tasks and available commands
+    silent: true
+    cmds:
+      - |
+        echo "🐉 DragonFly Development Tasks (Taskfile v3)"
+        echo ""
+        echo "🔧 MAIN DEVELOPMENT WORKFLOW:"
+        echo "   1️⃣  Build: task build (alias: b)"
+        echo "   2️⃣  Test: task test (alias: t)"
+        echo "   3️⃣  Quality: task check (format + lint + audit)"
+        echo "   4️⃣  Run: task run (alias: r)"
+        echo ""
+        echo "🎯 QUICK COMMANDS:"
+        echo "   task build              - Debug build (alias: b)"
+        echo "   task release           - Release build (alias: r)"
+        echo "   task test              - Run all tests (alias: t)"
+        echo "   task check             - Run all quality checks"
+        echo "   task ci                - Full CI check (build + test + quality)"
+        echo "   task run               - Run CLI (alias: r)"
+        echo "   task clean             - Clean build artifacts"
+        echo ""
+        echo "🔍 More commands: task --list"
+        echo "📖 Help: task help"
+
+  # =====================================================================
+  # Build Tasks
+  # =====================================================================
+
+  build:
+    desc: Debug build (fast compilation)
+    aliases: [b]
+    cmds:
+      - echo "Building DragonFly (debug)..."
+      - cargo build --workspace
+      - echo "Build complete"
+
+  release:
+    desc: Release build (optimized)
+    aliases: [rel]
+    deps:
+      - sbom
+    cmds:
+      - echo "Building DragonFly (release)..."
+      - cargo build --release --workspace
+      - echo "Release build complete"
+
+  build-cli:
+    desc: Build CLI crate only
+    cmds:
+      - echo "🔨 Building CLI..."
+      - cargo build -p {{.CLI_CRATE}}
+      - echo "✅ CLI build complete"
+
+  build-core:
+    desc: Build core domain crate only
+    cmds:
+      - echo "🔨 Building core domain..."
+      - cargo build -p dragonfly-core
+      - echo "✅ Core build complete"
+
+  # =====================================================================
+  # Test Tasks
+  # =====================================================================
+
+  test:
+    desc: Run all tests
+    aliases: [t]
+    cmds:
+      - echo "🧪 Running all tests..."
+      - cargo test --workspace
+      - echo "✅ All tests passed"
+
+  test-watch:
+    desc: Run tests in watch mode (requires cargo-watch)
+    cmds:
+      - echo "🧪 Running tests in watch mode..."
+      - cargo watch -x "test --workspace"
+
+  test-core:
+    desc: Test core domain only
+    cmds:
+      - echo "🧪 Testing core domain..."
+      - cargo test -p dragonfly-core
+      - echo "✅ Core tests passed"
+
+  test-cli:
+    desc: Test CLI only
+    cmds:
+      - echo "🧪 Testing CLI..."
+      - cargo test -p {{.CLI_CRATE}}
+      - echo "✅ CLI tests passed"
+
+  test-coverage:
+    desc: Generate test coverage report (requires cargo-tarpaulin)
+    cmds:
+      - echo "🧪 Generating test coverage..."
+      - cargo tarpaulin --workspace --out Html
+      - echo "Coverage report generated"
+
+  test-proptest:
+    desc: Run property-based tests
+    cmds:
+      - echo "🧪 Running property-based tests..."
+      - cargo test --features proptest --workspace
+      - echo "✅ Property tests passed"
+
+  test-nocapture:
+    desc: Run tests with output
+    cmds:
+      - echo "🧪 Running tests with output..."
+      - cargo test --workspace -- --nocapture
+
+  # =====================================================================
+  # Code Quality Tasks
+  # =====================================================================
+
+  fmt:
+    desc: Format all code
+    cmds:
+      - echo "✨ Formatting code..."
+      - cargo fmt --all
+      - echo "✅ Code formatted"
+
+  fmt-check:
+    desc: Check formatting without modifying (CI)
+    cmds:
+      - echo "✨ Checking code formatting..."
+      - cargo fmt --all -- --check
+      - echo "✅ Formatting check passed"
+
+  clippy:
+    desc: Lint with clippy
+    cmds:
+      - echo "🔍 Running clippy..."
+      - cargo clippy --workspace --all-targets -- -D warnings
+      - echo "✅ Clippy check passed"
+
+  clippy-fix:
+    desc: Auto-fix clippy warnings
+    cmds:
+      - echo "🔍 Auto-fixing clippy warnings..."
+      - cargo clippy --workspace --all-targets --fix --allow-dirty
+      - echo "✅ Clippy fixes applied"
+
+  audit:
+    desc: Security audit (requires cargo-audit)
+    cmds:
+      - echo "🔒 Running security audit..."
+      - cargo audit
+      - echo "✅ Security audit complete"
+
+  sbom:
+    desc: Generate Software Bill of Materials (SBOM) for all crates
+    cmds:
+      - echo "📦 Generating SBOM for workspace..."
+      - |
+        if ! command -v cargo-cyclonedx >/dev/null 2>&1; then
+          echo "Installing cargo-cyclonedx..."
+          cargo install cargo-cyclonedx --quiet
+        fi
+      - cargo cyclonedx --format json --all-features
+      - echo "✅ SBOM files generated for all crates"
+
+  sbom-check:
+    desc: Verify SBOM files exist and are valid
+    cmds:
+      - echo "🔍 Checking SBOM files..."
+      - |
+        SBOM_COUNT=$(find crates -name "*.cdx.json" 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$SBOM_COUNT" -eq 0 ]; then
+          echo "❌ No SBOM files found. Run 'task sbom' first."
+          exit 1
+        fi
+        echo "Found $SBOM_COUNT SBOM file(s)"
+      - |
+        if ! command -v jq >/dev/null 2>&1; then
+          echo "⚠️  jq not found. Skipping SBOM validation."
+        else
+          echo "Validating SBOM structure..."
+          for sbom_file in crates/*/*.cdx.json; do
+            if [ -f "$sbom_file" ]; then
+              jq -e '.bomFormat == "CycloneDX"' "$sbom_file" >/dev/null || exit 1
+              jq -e '.specVersion' "$sbom_file" >/dev/null || exit 1
+            fi
+          done
+          echo "✅ All SBOM files valid"
+        fi
+      - echo "✅ SBOM check passed"
+
+  deny:
+    desc: License compliance check (requires cargo-deny)
+    cmds:
+      - echo "📜 Checking license compliance..."
+      - cargo deny check
+      - echo "✅ License check complete"
+
+  check:
+    desc: Run all quality checks (format, clippy, audit, SBOM)
+    cmds:
+      - task: fmt-check
+      - task: clippy
+      - task: audit
+      - task: sbom-check
+      - echo "✅ All quality checks passed"
+
+  # =====================================================================
+  # Running Tasks
+  # =====================================================================
+
+  run:
+    desc: Run CLI (debug build)
+    aliases: [r]
+    deps:
+      - task: build
+    cmds:
+      - echo "Running DragonFly..."
+      - ./target/debug/{{.BINARY_NAME}} {{.CLI_ARGS}}
+
+  run-release:
+    desc: Run CLI (release build)
+    deps:
+      - task: release
+    cmds:
+      - echo "Running DragonFly (release)..."
+      - ./target/release/{{.BINARY_NAME}} {{.CLI_ARGS}}
+
+  run-health:
+    desc: Run health check command
+    deps:
+      - task: build
+    cmds:
+      - echo "🏥 Running health check..."
+      - ./target/debug/{{.BINARY_NAME}} health
+
+  run-disk:
+    desc: Run disk analysis
+    deps:
+      - task: build
+    cmds:
+      - echo "💾 Running disk analysis..."
+      - ./target/debug/{{.BINARY_NAME}} disk analyze {{.CLI_ARGS}}
+
+  run-clean:
+    desc: Run cleanup (dry-run)
+    deps:
+      - task: build
+    cmds:
+      - echo "🧹 Running cleanup (dry-run)..."
+      - ./target/debug/{{.BINARY_NAME}} clean --all --dry-run
+
+  run-recover:
+    desc: List recoveries
+    deps:
+      - task: build
+    cmds:
+      - echo "📦 Listing recoveries..."
+      - ./target/debug/{{.BINARY_NAME}} recover list
+
+  run-time-machine:
+    desc: List Time Machine snapshots
+    deps:
+      - task: build
+    cmds:
+      - echo "⏰ Listing Time Machine snapshots..."
+      - ./target/debug/{{.BINARY_NAME}} time-machine snapshots
+
+  # =====================================================================
+  # Documentation Tasks
+  # =====================================================================
+
+  doc:
+    desc: Generate and open documentation
+    cmds:
+      - echo "📚 Generating documentation..."
+      - cargo doc --workspace --no-deps --open
+      - echo "✅ Documentation opened"
+
+  doc-check:
+    desc: Check documentation links (requires cargo-deadlinks)
+    cmds:
+      - echo "📚 Checking documentation links..."
+      - cargo deadlinks
+      - echo "✅ Documentation links check complete"
+
+  # =====================================================================
+  # Cleanup Tasks
+  # =====================================================================
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - echo "🧹 Cleaning build artifacts..."
+      - cargo clean
+      - echo "✅ Clean complete"
+
+  clean-all:
+    desc: Deep clean (target + Cargo.lock)
+    cmds:
+      - echo "🧹 Deep cleaning..."
+      - cargo clean
+      - rm -f Cargo.lock
+      - echo "✅ Deep clean complete"
+
+  # =====================================================================
+  # CI/CD Tasks
+  # =====================================================================
+
+  ci:
+    desc: Full CI check (build + test + quality + SBOM)
+    cmds:
+      - echo "🔄 Running full CI check..."
+      - task: ci-build
+      - task: ci-test
+      - task: ci-quality
+      - echo "✅ CI check complete"
+
+  ci-build:
+    desc: CI build (release)
+    cmds:
+      - echo "CI Building release..."
+      - cargo build --release --workspace
+      - echo "✅ CI build complete"
+
+  ci-test:
+    desc: CI test with coverage
+    cmds:
+      - echo "CI Running tests..."
+      - cargo test --workspace
+      - echo "✅ CI tests passed"
+
+  ci-quality:
+    desc: CI quality checks
+    cmds:
+      - echo "CI Running quality checks..."
+      - task: fmt-check
+      - task: clippy
+      - task: sbom
+      - echo "✅ CI quality checks passed"
+
+  # =====================================================================
+  # Development Tasks
+  # =====================================================================
+
+  watch:
+    desc: Watch and rebuild on changes (requires cargo-watch)
+    cmds:
+      - echo "👀 Watching for changes..."
+      - cargo watch -x "build --workspace"
+
+  install:
+    desc: Install CLI to cargo bin
+    deps:
+      - task: release
+    cmds:
+      - echo "Installing DragonFly..."
+      - cargo install --path crates/{{.CLI_CRATE}} --force
+      - echo "DragonFly installed"
+
+  version:
+    desc: Show version info
+    cmds:
+      - echo "📋 DragonFly Version Info"
+      - cargo --version
+      - rustc --version
+      - echo ""
+      - echo "Project version:"
+      - grep "^version" Cargo.toml | head -1
+
+  update:
+    desc: Update dependencies
+    cmds:
+      - echo "🔄 Updating dependencies..."
+      - cargo update
+      - echo "✅ Dependencies updated"
+
+  verify:
+    desc: Verify project builds and tests pass
+    cmds:
+      - echo "✅ Verifying project..."
+      - task: build
+      - task: test
+      - echo "✅ Project verification complete"
+
+  # =====================================================================
+  # Utility Tasks
+  # =====================================================================
+
+  size:
+    desc: Show binary sizes
+    cmds:
+      - echo "📊 Binary Sizes:"
+      - |
+        if [ -f target/debug/dragonfly ]; then
+          echo "  Debug:   $(du -h target/debug/dragonfly | cut -f1)"
+        fi
+      - |
+        if [ -f target/release/dragonfly ]; then
+          echo "  Release: $(du -h target/release/dragonfly | cut -f1)"
+        fi
+
+  # =====================================================================
+  # Help Task
+  # =====================================================================
+
+  help:
+    desc: Show help with aliases and shortcuts
+    silent: true
+    cmds:
+      - |
+        echo "📖 DragonFly Taskfile Help"
+        echo "========================="
+        echo ""
+        echo "🎯 Quick Start:"
+        echo "   task build              - Debug build (aliases: b)"
+        echo "   task release           - Release build (aliases: rel)"
+        echo "   task test              - Run all tests (aliases: t)"
+        echo "   task check             - Run all quality checks"
+        echo "   task ci                - Full CI check"
+        echo "   task run               - Run CLI (aliases: r)"
+        echo ""
+        echo "🔧 Build Tasks:"
+        echo "   task build              - Debug build (aliases: b)"
+        echo "   task release           - Release build (aliases: rel)"
+        echo "   task build-cli         - Build CLI only"
+        echo "   task build-core        - Build core domain only"
+        echo ""
+        echo "🧪 Test Tasks:"
+        echo "   task test              - Run all tests (aliases: t)"
+        echo "   task test-watch        - Watch mode tests"
+        echo "   task test-core         - Test core domain"
+        echo "   task test-cli          - Test CLI"
+        echo "   task test-coverage     - Generate coverage report"
+        echo "   task test-proptest     - Property-based tests"
+        echo ""
+        echo "🔍 Quality Tasks:"
+        echo "   task fmt               - Format code"
+        echo "   task fmt-check         - Check formatting (CI)"
+        echo "   task clippy            - Lint with clippy"
+        echo "   task clippy-fix        - Auto-fix clippy warnings"
+        echo "   task audit             - Security audit"
+        echo "   task sbom              - Generate SBOM"
+        echo "   task sbom-check        - Verify SBOM"
+        echo "   task deny              - License compliance"
+        echo "   task check             - All quality checks"
+        echo ""
+        echo "🚀 Run Tasks:"
+        echo "   task run               - Run CLI (aliases: r)"
+        echo "   task run-release       - Run CLI (release)"
+        echo "   task run-health        - Run health check"
+        echo "   task run-disk          - Run disk analysis"
+        echo "   task run-clean         - Run cleanup (dry-run)"
+        echo "   task run-recover       - List recoveries"
+        echo "   task run-time-machine  - List Time Machine snapshots"
+        echo ""
+        echo "📚 Documentation:"
+        echo "   task doc               - Generate and open docs"
+        echo "   task doc-check         - Check doc links"
+        echo ""
+        echo "🧹 Cleanup:"
+        echo "   task clean             - Clean build artifacts"
+        echo "   task clean-all         - Deep clean"
+        echo ""
+        echo "🔄 CI/CD:"
+        echo "   task ci                - Full CI check"
+        echo "   task ci-build          - CI build"
+        echo "   task ci-test           - CI test"
+        echo "   task ci-quality        - CI quality checks"
+        echo ""
+        echo "💡 Tips:"
+        echo "   task --list            - Show all available tasks"
+        echo "   task <task> --dry      - Show what a task would do"
+        echo "   task <task> --help     - Show help for a task"
+        echo ""
+        echo "📖 Documentation:"
+        echo "   README.md              - Project overview"
+        echo "   SETUP.md               - Build and setup guide"
+        echo "   docs/AI_AGENT_CLEANUP_STRATEGY.md - AI cleanup strategy"

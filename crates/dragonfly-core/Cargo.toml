@@ -1,0 +1,57 @@
+[package]
+name = "dragonfly-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+rust-version.workspace = true
+description = "Core domain types, entities, and business logic for DragonFly"
+readme = "README.md"
+
+[dependencies]
+# Error handling - Domain errors
+thiserror.workspace = true
+anyhow.workspace = true
+
+# Serialization - For domain entities and value objects
+serde.workspace = true
+serde_json.workspace = true
+
+# Utilities - Domain value objects
+chrono.workspace = true
+uuid.workspace = true
+
+# Logging - For domain events
+tracing.workspace = true
+
+# Async support - For port traits
+tokio.workspace = true
+async-trait.workspace = true
+
+[dev-dependencies]
+# Property-based testing
+proptest.workspace = true
+
+# Parameterized tests
+rstest.workspace = true
+
+# Mocking for port traits
+mockall.workspace = true
+
+# Better assertions
+pretty_assertions.workspace = true
+
+# Async testing
+tokio-test = "0.4"
+
+[features]
+default = []
+# Property-based testing is available via dev-dependencies
+
+[lib]
+name = "dragonfly_core"
+path = "src/lib.rs"
