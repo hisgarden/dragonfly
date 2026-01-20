@@ -239,13 +239,28 @@ tasks:
   # =====================================================================
 
   run:
-    desc: Run CLI (debug build)
+    desc: 'Run CLI (debug build, usage: task run CLI_ARGS="command --options")'
     aliases: [r]
     deps:
       - task: build
     cmds:
-      - echo "Running DragonFly..."
+      - |
+        echo "🐉 DragonFly CLI"
+        echo "================"
+        echo ""
+        echo "🔨 Binary: ./target/debug/{{.BINARY_NAME}}"
+        if [ -n "{{.CLI_ARGS}}" ]; then
+          echo "📝 Arguments: {{.CLI_ARGS}}"
+        else
+          echo "📝 No arguments - showing help..."
+        fi
+        echo ""
+        echo "🚀 Executing..."
+        echo ""
       - ./target/debug/{{.BINARY_NAME}} {{.CLI_ARGS}}
+      - |
+        echo ""
+        echo "✅ Command completed!"
 
   run-release:
     desc: Run CLI (release build)
@@ -264,12 +279,30 @@ tasks:
       - ./target/debug/{{.BINARY_NAME}} health
 
   run-disk:
-    desc: Run disk analysis
+    desc: 'Run disk analysis (usage: task run-disk CLI_ARGS="--min-size 500MB ~/")'
     deps:
       - task: build
     cmds:
-      - echo "💾 Running disk analysis..."
+      - |
+        echo "💾 DragonFly Disk Analysis"
+        echo "=========================="
+        echo ""
+        echo "📋 Command: disk analyze"
+        if [ -n "{{.CLI_ARGS}}" ]; then
+          echo "📝 Arguments: {{.CLI_ARGS}}"
+        else
+          echo "⚠️  No arguments provided. Defaulting to current directory."
+          echo "   Usage example: task run-disk CLI_ARGS=\"--min-size 500MB ~/\""
+        fi
+        echo ""
+        echo "🔨 Binary: ./target/debug/{{.BINARY_NAME}}"
+        echo ""
+        echo "🚀 Executing..."
+        echo ""
       - ./target/debug/{{.BINARY_NAME}} disk analyze {{.CLI_ARGS}}
+      - |
+        echo ""
+        echo "✅ Disk analysis complete!"
 
   run-clean:
     desc: Run cleanup (dry-run)

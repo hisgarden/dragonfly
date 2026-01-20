@@ -47,5 +47,4 @@ Icon
 *.log
 
 # Error tracking configuration (contains auth tokens)
-.sentryclirc
 .glitchtiprc

@@ -61,13 +61,6 @@ cp .glitchtiprc.example .glitchtiprc
 ./target/debug/dragonfly --enable-error-tracking health
 ```
 
-### Option 2: Use .sentryclirc (Backward Compatible)
-
-```bash
-cp .sentryclirc.example .sentryclirc
-# Edit .sentryclirc with your GlitchTip DSN
-./target/debug/dragonfly --enable-error-tracking health
-```
 
 ## Testing Different Scenarios
 

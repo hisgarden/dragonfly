@@ -40,7 +40,7 @@ struct Cli {
     #[arg(global = true, long)]
     json: bool,
 
-    /// Enable error tracking (Sentry/GlitchTip) - sends errors to remote server
+    /// Enable error tracking (GlitchTip only) - sends errors to local/self-hosted server
     #[arg(global = true, long)]
     enable_error_tracking: bool,
 }
@@ -77,7 +77,7 @@ enum Commands {
     #[command(about = "Clean system caches and temporary files")]
     Clean {
         /// Perform a dry run (don't actually delete)
-        #[arg(short, long)]
+        #[arg(long)]
         dry_run: bool,
 
         /// Clean all (caches, logs, temps)
@@ -203,10 +203,10 @@ async fn main() -> Result<()> {
         }
     };
 
-    // Report errors to error tracking backend only if enabled
+    // Report errors to GlitchTip only if enabled
     if cli.enable_error_tracking {
         if let Err(ref error) = result {
-            // Convert anyhow::Error to something Sentry/GlitchTip can capture
+            // Convert anyhow::Error to something GlitchTip can capture
             if let Some(source) = error.source() {
                 sentry::capture_error(source);
             } else {
